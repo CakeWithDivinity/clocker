@@ -1,22 +1,40 @@
 use crate::clock::Clock;
-use std::{time, cell::RefCell};
+use std::{cell::RefCell, time};
 
 pub struct TimeTracker<'a, T: Clock> {
-    items: Vec<TimeTrackerItem<'a, T>>,
-}
-
-pub struct TimeTrackerItem<'a, T: Clock> {
-    entries: RefCell<Vec<TimeTrackerEntry<'a, T>>>,
+    items: RefCell<Vec<TimeTrackerItem<'a, T>>>,
     clock: T,
 }
 
-impl<'a, T: Clock> TimeTrackerItem<'a, T> {
+impl<'a, T: Clock> TimeTracker<'a, T> {
     fn new(clock: T) -> Self {
-        Self { entries: RefCell::new(vec![]), clock }
+        Self { items: RefCell::new(vec![]), clock }
+    }
+
+    fn add_item(&'a self, label: String) {
+        self.items.borrow_mut().push(TimeTrackerItem::new(label, &self.clock));
+    }
+}
+
+pub struct TimeTrackerItem<'a, T: Clock> {
+    label: String,
+    entries: RefCell<Vec<TimeTrackerEntry<'a, T>>>,
+    clock: &'a T,
+}
+
+impl<'a, T: Clock> TimeTrackerItem<'a, T> {
+    fn new(label: String, clock: &'a T) -> Self {
+        Self {
+            entries: RefCell::new(vec![]),
+            label,
+            clock,
+        }
     }
 
     fn track(&'a self) {
-       self.entries.borrow_mut().push(TimeTrackerEntry::new(&self.clock));
+        self.entries
+            .borrow_mut()
+            .push(TimeTrackerEntry::new(&self.clock));
     }
 }
 
@@ -46,7 +64,7 @@ mod tests {
 
     use crate::clock::MockClock;
 
-    use super::{TimeTrackerEntry, TimeTrackerItem};
+    use super::{TimeTrackerEntry, TimeTrackerItem, TimeTracker};
 
     #[test]
     fn entry_starts_with_current_time() {
@@ -81,10 +99,24 @@ mod tests {
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
         };
-        
-        let item = TimeTrackerItem::new(mock_clock);
+
+        let item = TimeTrackerItem::new("TestItem".to_string(), &mock_clock);
         item.track();
 
         assert_eq!(item.entries.borrow()[0].start, *current_time.borrow());
+    }
+
+    #[test]
+    fn tracker_can_add_items() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time),
+        };
+
+        let tracker = TimeTracker::new(mock_clock);
+        tracker.add_item("TestItem".to_string());
+
+        let item = &tracker.items.borrow()[0];
+        assert_eq!("TestItem", item.label);
     }
 }
