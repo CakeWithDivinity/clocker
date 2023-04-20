@@ -31,7 +31,7 @@ impl<T: Clock> TimeTrackerEntry<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, time::SystemTime};
+    use std::{cell::RefCell, time::SystemTime, rc::Rc};
 
     use crate::clock::MockClock;
 
@@ -43,11 +43,25 @@ mod tests {
         let current_time = SystemTime::now();
 
         let mock_clock = MockClock {
-            now: RefCell::new(current_time)
+            now: Rc::new(RefCell::new(current_time))
         };
 
         let entry = TimeTrackerEntry::new(mock_clock);
 
         assert_eq!(entry.start, current_time);
+    }
+
+    #[test]
+    fn entry_ends_tracking_with_current_time() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time)
+        };
+
+        let mut entry = TimeTrackerEntry::new(mock_clock);
+        *current_time.borrow_mut() = SystemTime::now();
+        entry.end_tracking();
+
+        assert_eq!(entry.end, Some(*current_time.borrow()));
     }
 }

@@ -1,4 +1,4 @@
-use std::{time::SystemTime, cell::RefCell};
+use std::{time::SystemTime, cell::RefCell, rc::Rc};
 
 pub trait Clock {
     fn current_time(&self) -> SystemTime;
@@ -13,7 +13,7 @@ impl Clock for SystemClock {
 }
 
 pub struct MockClock {
-    pub now: RefCell<SystemTime>,
+    pub now: Rc<RefCell<SystemTime>>,
 }
 
 impl Clock for MockClock {
