@@ -1,6 +1,7 @@
 use crate::clock::Clock;
 use std::time;
 
+#[derive(Debug)]
 pub enum TimeTrackerError {
     ItemNotFound,
 }
@@ -22,15 +23,25 @@ impl<T: Clock> TimeTracker<T> {
         self.items.push(TimeTrackerItem::new(label));
     }
 
-    fn track_item(&mut self, item_label: String) -> Result<(), TimeTrackerError>{
+    fn track_item(&mut self, item_label: String) -> Result<(), TimeTrackerError> {
         let item = match self.items.iter_mut().find(|item| item.label == item_label) {
             Some(item) => item,
-            None => return Err(TimeTrackerError::ItemNotFound)
+            None => return Err(TimeTrackerError::ItemNotFound),
         };
 
         item.track(&self.clock);
 
         Ok(())
+    }
+
+    fn get_currently_tracked_item(&mut self) -> Option<&mut TimeTrackerItem> {
+        self.items.iter_mut().find(|item| item.is_tracked())
+    }
+
+    fn stop_tracking_current_item(&mut self) {
+        if let Some(item) = self.items.iter_mut().find(|item| item.is_tracked()) {
+            item.end_tracking(&self.clock)
+        }
     }
 }
 
@@ -49,6 +60,19 @@ impl TimeTrackerItem {
 
     fn track(&mut self, clock: &dyn Clock) {
         self.entries.push(TimeTrackerEntry::new(clock));
+    }
+
+    fn is_tracked(&self) -> bool {
+        match self.entries.last() {
+            None => false,
+            Some(last_entry) => last_entry.end.is_none(),
+        }
+    }
+
+    fn end_tracking(&mut self, clock: &dyn Clock) {
+        if let Some(entry) = self.entries.last_mut() {
+            entry.end_tracking(clock);
+        }
     }
 }
 
@@ -155,5 +179,39 @@ mod tests {
 
         let mut tracker = TimeTracker::new(mock_clock);
         assert!(tracker.track_item("NonExistent".to_string()).is_err());
+    }
+
+    #[test]
+    fn tracker_returns_currently_tracked_item() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time),
+        };
+
+        let mut tracker = TimeTracker::new(mock_clock);
+        tracker.add_item("TestItem".to_string());
+        tracker.add_item("TrackedTestItem".to_string());
+        tracker.track_item("TrackedTestItem".to_string()).unwrap();
+
+        assert_eq!(
+            tracker.get_currently_tracked_item().unwrap().label,
+            "TrackedTestItem"
+        );
+    }
+
+    #[test]
+    fn tracker_can_stop_tracking_current_item() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time),
+        };
+
+        let mut tracker = TimeTracker::new(mock_clock);
+        tracker.add_item("TestItem".to_string());
+        tracker.track_item("TestItem".to_string()).unwrap();
+        tracker.stop_tracking_current_item();
+
+        assert_eq!(tracker.items[0].entries[0].end, Some(*current_time.borrow()));
+        assert!(tracker.get_currently_tracked_item().is_none());
     }
 }
