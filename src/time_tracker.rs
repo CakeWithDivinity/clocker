@@ -1,6 +1,10 @@
 use crate::clock::Clock;
 use std::time;
 
+pub enum TimeTrackerError {
+    ItemNotFound,
+}
+
 pub struct TimeTracker<T: Clock> {
     items: Vec<TimeTrackerItem>,
     clock: T,
@@ -16,6 +20,17 @@ impl<T: Clock> TimeTracker<T> {
 
     fn add_item(&mut self, label: String) {
         self.items.push(TimeTrackerItem::new(label));
+    }
+
+    fn track_item(&mut self, item_label: String) -> Result<(), TimeTrackerError>{
+        let item = match self.items.iter_mut().find(|item| item.label == item_label) {
+            Some(item) => item,
+            None => return Err(TimeTrackerError::ItemNotFound)
+        };
+
+        item.track(&self.clock);
+
+        Ok(())
     }
 }
 
@@ -115,5 +130,30 @@ mod tests {
 
         let item = &tracker.items[0];
         assert_eq!("TestItem", item.label);
+    }
+
+    #[test]
+    fn tracker_can_track_item() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time),
+        };
+
+        let mut tracker = TimeTracker::new(mock_clock);
+        tracker.add_item("TestItem".to_string());
+
+        assert!(tracker.track_item("TestItem".to_string()).is_ok());
+        assert_eq!(tracker.items[0].entries[0].start, *current_time.borrow());
+    }
+
+    #[test]
+    fn tracker_returns_err_when_tracking_non_existent_item() {
+        let current_time = Rc::new(RefCell::new(SystemTime::now()));
+        let mock_clock = MockClock {
+            now: Rc::clone(&current_time),
+        };
+
+        let mut tracker = TimeTracker::new(mock_clock);
+        assert!(tracker.track_item("NonExistent".to_string()).is_err());
     }
 }
