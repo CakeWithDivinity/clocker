@@ -1,60 +1,57 @@
 use crate::clock::Clock;
-use std::{cell::RefCell, time};
+use std::time;
 
-pub struct TimeTracker<'a, T: Clock> {
-    items: RefCell<Vec<TimeTrackerItem<'a, T>>>,
+pub struct TimeTracker<T: Clock> {
+    items: Vec<TimeTrackerItem>,
     clock: T,
 }
 
-impl<'a, T: Clock> TimeTracker<'a, T> {
+impl<T: Clock> TimeTracker<T> {
     fn new(clock: T) -> Self {
-        Self { items: RefCell::new(vec![]), clock }
-    }
-
-    fn add_item(&'a self, label: String) {
-        self.items.borrow_mut().push(TimeTrackerItem::new(label, &self.clock));
-    }
-}
-
-pub struct TimeTrackerItem<'a, T: Clock> {
-    label: String,
-    entries: RefCell<Vec<TimeTrackerEntry<'a, T>>>,
-    clock: &'a T,
-}
-
-impl<'a, T: Clock> TimeTrackerItem<'a, T> {
-    fn new(label: String, clock: &'a T) -> Self {
         Self {
-            entries: RefCell::new(vec![]),
-            label,
+            items: vec![],
             clock,
         }
     }
 
-    fn track(&'a self) {
-        self.entries
-            .borrow_mut()
-            .push(TimeTrackerEntry::new(&self.clock));
+    fn add_item(&mut self, label: String) {
+        self.items.push(TimeTrackerItem::new(label));
     }
 }
 
-pub struct TimeTrackerEntry<'a, T: Clock> {
-    start: time::SystemTime,
-    end: Option<time::SystemTime>,
-    clock: &'a T,
+pub struct TimeTrackerItem {
+    label: String,
+    entries: Vec<TimeTrackerEntry>,
 }
 
-impl<'a, T: Clock> TimeTrackerEntry<'a, T> {
-    fn new(clock: &'a T) -> Self {
+impl TimeTrackerItem {
+    fn new(label: String) -> Self {
+        Self {
+            entries: vec![],
+            label,
+        }
+    }
+
+    fn track(&mut self, clock: &dyn Clock) {
+        self.entries.push(TimeTrackerEntry::new(clock));
+    }
+}
+
+pub struct TimeTrackerEntry {
+    start: time::SystemTime,
+    end: Option<time::SystemTime>,
+}
+
+impl TimeTrackerEntry {
+    fn new(clock: &dyn Clock) -> Self {
         Self {
             start: clock.current_time(),
             end: None,
-            clock,
         }
     }
 
-    fn end_tracking(&mut self) {
-        self.end = Some(self.clock.current_time());
+    fn end_tracking(&mut self, clock: &dyn Clock) {
+        self.end = Some(clock.current_time());
     }
 }
 
@@ -64,7 +61,7 @@ mod tests {
 
     use crate::clock::MockClock;
 
-    use super::{TimeTrackerEntry, TimeTrackerItem, TimeTracker};
+    use super::{TimeTracker, TimeTrackerEntry, TimeTrackerItem};
 
     #[test]
     fn entry_starts_with_current_time() {
@@ -88,7 +85,7 @@ mod tests {
 
         let mut entry = TimeTrackerEntry::new(&mock_clock);
         *current_time.borrow_mut() = SystemTime::now();
-        entry.end_tracking();
+        entry.end_tracking(&mock_clock);
 
         assert_eq!(entry.end, Some(*current_time.borrow()));
     }
@@ -100,10 +97,10 @@ mod tests {
             now: Rc::clone(&current_time),
         };
 
-        let item = TimeTrackerItem::new("TestItem".to_string(), &mock_clock);
-        item.track();
+        let mut item = TimeTrackerItem::new("TestItem".to_string());
+        item.track(&mock_clock);
 
-        assert_eq!(item.entries.borrow()[0].start, *current_time.borrow());
+        assert_eq!(item.entries[0].start, *current_time.borrow());
     }
 
     #[test]
@@ -113,10 +110,10 @@ mod tests {
             now: Rc::clone(&current_time),
         };
 
-        let tracker = TimeTracker::new(mock_clock);
+        let mut tracker = TimeTracker::new(mock_clock);
         tracker.add_item("TestItem".to_string());
 
-        let item = &tracker.items.borrow()[0];
+        let item = &tracker.items[0];
         assert_eq!("TestItem", item.label);
     }
 }
