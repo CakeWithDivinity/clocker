@@ -51,7 +51,7 @@ mod tests {
         };
 
         let mut entry = TimeTrackerEntry::new(&mock_clock);
-        *current_time.borrow_mut() = SystemTime::now();
+        current_time.replace(SystemTime::now());
         entry.end_tracking(&mock_clock);
 
         assert_eq!(entry.end, Some(*current_time.borrow()));
