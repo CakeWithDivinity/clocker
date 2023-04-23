@@ -39,7 +39,7 @@ mod tests {
     use crate::clock::MockClock;
 
     #[test]
-    fn item_creates_entry_when_tracked() {
+    fn creates_entry_when_tracked() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),

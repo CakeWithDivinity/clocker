@@ -31,7 +31,7 @@ mod tests {
     use crate::{clock::MockClock, time_tracker_entry::TimeTrackerEntry};
 
     #[test]
-    fn entry_starts_with_current_time() {
+    fn starts_with_current_time() {
         let current_time = SystemTime::now();
 
         let mock_clock = MockClock {
@@ -44,7 +44,7 @@ mod tests {
     }
 
     #[test]
-    fn entry_ends_tracking_with_current_time() {
+    fn ends_tracking_with_current_time() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),

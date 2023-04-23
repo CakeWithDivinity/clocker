@@ -53,7 +53,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn tracker_can_add_items() {
+    fn can_add_items() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
@@ -67,7 +67,7 @@ mod tests {
     }
 
     #[test]
-    fn tracker_can_track_item() {
+    fn can_track_item() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
@@ -81,7 +81,7 @@ mod tests {
     }
 
     #[test]
-    fn tracker_returns_err_when_tracking_non_existent_item() {
+    fn returns_err_when_tracking_non_existent_item() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
@@ -92,7 +92,7 @@ mod tests {
     }
 
     #[test]
-    fn tracker_returns_currently_tracked_item() {
+    fn returns_currently_tracked_item() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn tracker_can_stop_tracking_current_item() {
+    fn can_stop_tracking_current_item() {
         let current_time = Rc::new(RefCell::new(SystemTime::now()));
         let mock_clock = MockClock {
             now: Rc::clone(&current_time),
